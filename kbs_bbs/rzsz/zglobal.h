@@ -101,6 +101,12 @@ extern const char *program_name;    /* the name by which we were called */
 extern int errors;
 extern int no_timeout;
 extern int Zctlesc;                 /* Encode control characters */
+extern int zmodem_requested;
+extern char Lzmanag;                /* Local file management request */
+extern char zconv;                  /* ZMODEM file conversion request */
+extern char zmanag;                 /* ZMODEM file management request */
+extern char ztrans;                 /* ZMODEM file transport request */
+extern time_t stop_time;
 void bibi(int n);
 
 #define sendline(c)     raw_ochar((c) & 0377)

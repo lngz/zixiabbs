@@ -143,9 +143,10 @@ void new_register()
 /*   newuser.userdefine&=~DEF_MAILMSG;
     newuser.userdefine&=~DEF_EDITMSG; */
     SET_UNDEFINE(&newuser, DEF_NOTMSGFRIEND);
-    if (convcode)
+    /*
+     * if (convcode)
         SET_UNDEFINE(&newuser, DEF_USEGB);
-
+     */
 	SET_UNDEFINE(&newuser, DEF_SHOWREALUSERDATA);
 
     newuser.exittime = time(NULL) - 100;

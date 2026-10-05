@@ -239,14 +239,14 @@ int check_IP_lists(
 ){
     FILE *fp;
     char buf[1024];
-    int i,found,min,ret;
+    int i,found,min;
     time_t now;
 #ifndef HAVE_IPV6_SMTH
     unsigned int ip[4];
 #else /* HAVE_IPV6_SMTH */
     struct in6_addr rip;
 #endif /* ! HAVE_IPV6_SMTH */
-    found=0;min=0;ret=0;
+    found=0;min=0;
     if(!initIP){
         ips=(struct ip_struct*)malloc(MAXLIST*sizeof(struct ip_struct));
         bads=(struct ip_struct*)malloc(MAXLIST*sizeof(struct ip_struct));
@@ -331,18 +331,15 @@ int check_IP_lists(
                     fprintf(fp,"0 %ld %d.%d.%d.%d %d\n",now,ip[0],ip[1],ip[2],ip[3],ips[i].t);
                     fclose(fp);
                 }
-                ret=1;
             }
             found=1;
             ips[i].last=now;
             ips[i].t++;
             if(!(ips[i].t<10)&&!((ips[i].t/(double)(ips[i].last-ips[i].first))<CON_THRESHOLD)){
-                ips[i].t=100000;
                 if((fp=fopen(".IPdenys","a"))){
                     fprintf(fp,"1 %ld %d.%d.%d.%d %d\n",now,ip[0],ip[1],ip[2],ip[3],ips[i].t);
                     fclose(fp);
                 }
-                ret=1;
             }
             break;
         }
@@ -385,13 +382,11 @@ int check_IP_lists(
                         rip.s6_addr[11],rip.s6_addr[12],rip.s6_addr[13],rip.s6_addr[14],rip.s6_addr[15],ips[i].t);
                     fclose(fp);
                 }
-                ret=1;
             }
             found=1;
             ips[i].last=now;
             ips[i].t++;
             if(!(ips[i].t<10)&&!((ips[i].t/(double)(ips[i].last-ips[i].first))<CON_THRESHOLD)){
-                ips[i].t=100000;
                 if((fp=fopen(".IPdenys","a"))){
                     fprintf(fp,"1 %ld %02hhX%02hhX:%02hhX%02hhX:%02hhX%02hhX:%02hhX%02hhX:"
                         "%02hhX%02hhX:%02hhX%02hhX:%02hhX%02hhX:%02hhX%02hhX %d\n",now,rip.s6_addr[0],
@@ -400,7 +395,6 @@ int check_IP_lists(
                         rip.s6_addr[11],rip.s6_addr[12],rip.s6_addr[13],rip.s6_addr[14],rip.s6_addr[15],ips[i].t);
                     fclose(fp);
                 }
-                ret=1;
             }
             break;
         }
@@ -414,7 +408,7 @@ int check_IP_lists(
         ips[min].t=1;
     }
 #endif /* ! HAVE_IPV6_SMTH */
-    return ret;
+    return 0;
 }
 static int bbs_main(char *argv){
 #define BBS_MAIN_EXIT(time)     do{local_Net_Sleep(time);shutdown(0,2);close(0);return -1;}while(0)

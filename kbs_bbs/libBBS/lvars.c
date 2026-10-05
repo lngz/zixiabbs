@@ -9,6 +9,8 @@ struct UTMPHEAD *utmphead;
 int WORDBOUND, WHOLELINE, NOUPPER, INVERSE, FILENAMEONLY, SILENT, FNAME;
 int ONLYCOUNT;
 
+/* scr_cols and scr_lns are defined in src/screen.c; extern declared in defines_t.h */
+
 struct UCACHE *uidshm = NULL;
 
 /*log.c*/

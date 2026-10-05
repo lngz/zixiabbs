@@ -25,8 +25,8 @@
 #define _GNU_SOURCE
 #endif /* _GNU_SOURCE */
 
-#include "php.h"
-#include "php_ini.h"
+#include <php.h>
+#include <php_ini.h>
 
 extern zend_module_entry kbs_bbs_module_entry;
 #define phpext_kbs_bbs_ptr &kbs_bbs_module_entry

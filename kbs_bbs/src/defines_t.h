@@ -29,7 +29,7 @@ void noscroll();
 void setfcolor(int i,int j);
 void setbcolor(int i);
 void resetcolor();
-int scr_cols,scr_lns;
+extern int scr_cols,scr_lns;
 void clear_whole_line(int i);
 void move(int y, int x);
 
@@ -254,6 +254,7 @@ int countlogouts(char filename[STRLEN]);
 /* userinfo.c */
 void disply_userinfo(struct userec *u, int real);
 int uinfo_query(struct userec *u, int real, int unum);
+int uinfo_altar(struct userec *u);
 int modify_userinfo(int uid,int mode);  /* etnlegend, 2006.09.21, 修改用户资料接口... */
 
 /* register.c */

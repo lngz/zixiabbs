@@ -38,7 +38,9 @@ struct userec {                 /* Structure used to hold information in */
 	/* 生日数据转移到 userdata 结构中 */
     unsigned int usedspace;     /* used space of user's mailbox, in bytes */
 
-    int unused[7];
+    int unused[2];
+    int altar;
+    int unused2[4];
 };
 #endif //OWN_USEREC
 

@@ -116,6 +116,8 @@ static size_t getfree(void);
 
 static long buffersize = 32768;
 
+char Lzconv;                    /* Local ZMODEM file conversion request */
+char Lztrans;                   /* Local ZMODEM file transport request */
 char Lzmanag;                   /* Local file management request */
 char zconv;                     /* ZMODEM file conversion request */
 char zmanag;                    /* ZMODEM file management request */

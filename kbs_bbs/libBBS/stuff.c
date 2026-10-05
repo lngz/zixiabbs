@@ -401,6 +401,10 @@ char* setbdir(enum BBS_DIR_MODE mode,char *buf,const char *boardname){
             type=0;
             prefix=DING_DIR;
             break;
+        case DIR_MODE_THREAD_LASTREPLY:
+            type=0;
+            prefix=THREAD_LASTREPLY_DIR;
+            break;
         case DIR_MODE_SELF:
             type=1;
             prefix=".SELF";
@@ -1921,6 +1925,239 @@ int gen_title(const char *boardname )
 
     ldata.l_type = F_UNLCK;
     fcntl(fd, F_SETLKW, &ldata);        /* ÍË³ö»¥³âÇøÓò*/
+    close(fd);
+    return 0;
+}
+
+int gen_title_lastreply(const char *boardname )
+{
+    struct fileheader mkpost, *ptr1, *ptr2;
+    struct flock ldata, ldata2;
+    int fd, fd2, size = sizeof(fileheader), total, i, j, count = 0, hasht;
+    char olddirect[PATHLEN];
+    char newdirect[PATHLEN];
+    char *ptr, *t;
+    struct hashstruct {
+        int index, data;
+    } *hashtable;
+    int *index, *next;
+    int *thread_roots;
+    int *thread_last_time;
+    int nthreads = 0;
+    off_t f_size;
+
+    setbdir(DIR_MODE_NORMAL, olddirect, boardname);
+    setbdir(DIR_MODE_THREAD_LASTREPLY, newdirect, boardname);
+    if ((fd = open(newdirect, O_WRONLY | O_CREAT, 0664)) == -1) {
+        bbslog("user", "%s", "recopen err");
+        return -1;
+    }
+    ldata.l_type = F_WRLCK;
+    ldata.l_whence = 0;
+    ldata.l_len = 0;
+    ldata.l_start = 0;
+    if (fcntl(fd, F_SETLKW, &ldata) == -1) {
+        bbslog("user", "%s", "reclock err");
+        close(fd);
+        return -1;
+    }
+    if (!setboardtitle(boardname, -1)) {
+        ldata.l_type = F_UNLCK;
+        fcntl(fd, F_SETLKW, &ldata);
+        close(fd);
+        return -1;
+    }
+
+    if ((fd2 = open(olddirect, O_RDONLY, 0664)) == -1) {
+        bbslog("user", "%s", "recopen err");
+        ldata.l_type = F_UNLCK;
+        fcntl(fd, F_SETLKW, &ldata);
+        close(fd);
+        return -1;
+    }
+    ldata2.l_type = F_RDLCK;
+    ldata2.l_whence = 0;
+    ldata2.l_len = 0;
+    ldata2.l_start = 0;
+    fcntl(fd2, F_SETLKW, &ldata2);
+
+    index = NULL;
+    hashtable = NULL;
+    next = NULL;
+    thread_roots = NULL;
+    thread_last_time = NULL;
+    BBS_TRY {
+        if (safe_mmapfile_handle(fd2, PROT_READ, MAP_SHARED, &ptr, &f_size) == 0) {
+            ldata2.l_type = F_UNLCK;
+            fcntl(fd2, F_SETLKW, &ldata2);
+            close(fd2);
+            ldata.l_type = F_UNLCK;
+            fcntl(fd, F_SETLKW, &ldata);
+            close(fd);
+            BBS_RETURN(-1);
+        }
+        total = f_size / size;
+        hasht = total * 8 / 5;
+        hashtable = (struct hashstruct *) malloc(sizeof(*hashtable) * hasht);
+        if (hashtable == NULL) {
+            end_mmapfile((void *) ptr, f_size, -1);
+            BBS_RETURN(-1);
+        }
+        index = (int *) malloc(sizeof(int) * total);
+        if (index == NULL) {
+            free(hashtable);
+            end_mmapfile((void *) ptr, f_size, -1);
+            BBS_RETURN(-1);
+        }
+        next = (int *) malloc(sizeof(int) * total);
+        if (next == NULL) {
+            free(hashtable);
+            free(index);
+            end_mmapfile((void *) ptr, f_size, -1);
+            BBS_RETURN(-1);
+        }
+        memset(hashtable, 0xFF, sizeof(*hashtable) * hasht);
+        memset(index, 0, sizeof(int) * total);
+        ptr1 = (struct fileheader *) ptr;
+        for (i = 0; i < total; i++, ptr1++) {
+            int l = 0, m;
+
+            if (ptr1->groupid == ptr1->id)
+                l = i;
+            else {
+                l = ptr1->groupid % hasht;
+                while (hashtable[l].index != ptr1->groupid && hashtable[l].index != -1) {
+                    l++;
+                    if (l >= hasht)
+                        l = 0;
+                }
+                if (hashtable[l].index == -1)
+                    l = i;
+                else
+                    l = hashtable[l].data;
+            }
+            if (l == i) {
+                l = ptr1->groupid % hasht;
+                while (hashtable[l].index != -1) {
+                    l++;
+                    if (l >= hasht)
+                        l = 0;
+                }
+                hashtable[l].index = ptr1->groupid;
+                hashtable[l].data = i;
+                index[i] = i;
+                next[i] = 0;
+            } else {
+                m = index[l];
+                next[m] = i;
+                next[i] = 0;
+                index[l] = i;
+                index[i] = -1;
+            }
+        }
+
+        /* Collect thread roots and their last reply time */
+        thread_roots = (int *) malloc(sizeof(int) * total);
+        thread_last_time = (int *) malloc(sizeof(int) * total);
+        if (thread_roots == NULL || thread_last_time == NULL) {
+            end_mmapfile((void *) ptr, f_size, -1);
+            BBS_RETURN(-1);
+        }
+        nthreads = 0;
+        ptr1 = (struct fileheader *) ptr;
+        for (i = 0; i < total; i++, ptr1++) {
+            if (index[i] != -1) {
+                /* Find the last node in the next chain; since .DIR is in
+                   chronological order, the last node has the latest reply time */
+                int last_time = ptr1->posttime;
+                int last_j = i;
+                j = next[i];
+                while (j != 0) {
+                    last_j = j;
+                    j = next[j];
+                }
+                ptr2 = (struct fileheader *) (ptr + last_j * size);
+                last_time = ptr2->posttime;
+                thread_roots[nthreads] = i;
+                thread_last_time[nthreads] = last_time;
+                nthreads++;
+            }
+        }
+
+        /* Sort thread roots by last_time descending (insertion sort) */
+        for (i = 1; i < nthreads; i++) {
+            int key_root = thread_roots[i];
+            int key_time = thread_last_time[i];
+            j = i - 1;
+            while (j >= 0 && thread_last_time[j] < key_time) {
+                thread_roots[j + 1] = thread_roots[j];
+                thread_last_time[j + 1] = thread_last_time[j];
+                j--;
+            }
+            thread_roots[j + 1] = key_root;
+            thread_last_time[j + 1] = key_time;
+        }
+
+        /* Write threads in sorted order */
+        for (i = 0; i < nthreads; i++) {
+            int ri = thread_roots[i];
+            ptr1 = (struct fileheader *) (ptr + ri * size);
+            write(fd, ptr1, size);
+            count++;
+            j = next[ri];
+            while (j != 0) {
+                ptr2 = (struct fileheader *) (ptr + j * size);
+                memcpy(&mkpost, ptr2, sizeof(mkpost));
+                t = ptr2->title;
+                if (!strncmp(t, "Re: ", 4))
+                    t += 4;
+                if (next[j] == 0)
+                    snprintf(mkpost.title, ARTICLE_TITLE_LEN, "©¸ %s", t);
+                else
+                    snprintf(mkpost.title, ARTICLE_TITLE_LEN, "©À %s", t);
+                write(fd, &mkpost, size);
+                count++;
+                j = next[j];
+            }
+        }
+
+        free(thread_roots);
+        free(thread_last_time);
+        free(index);
+        free(next);
+        free(hashtable);
+    }
+    BBS_CATCH {
+        ldata2.l_type = F_UNLCK;
+        fcntl(fd2, F_SETLKW, &ldata2);
+        close(fd2);
+        ldata.l_type = F_UNLCK;
+        fcntl(fd, F_SETLKW, &ldata);
+        close(fd);
+        end_mmapfile((void *) ptr, f_size, -1);
+        if (index)
+            free(index);
+        if (next)
+            free(next);
+        if (hashtable)
+            free(hashtable);
+        if (thread_roots)
+            free(thread_roots);
+        if (thread_last_time)
+            free(thread_last_time);
+        BBS_RETURN(-1);
+    }
+    BBS_END;
+    ldata2.l_type = F_UNLCK;
+
+    fcntl(fd2, F_SETLKW, &ldata2);
+    close(fd2);
+    ftruncate(fd, count * size);
+
+    setboardtitle(boardname, 0);
+
+    ldata.l_type = F_UNLCK;
+    fcntl(fd, F_SETLKW, &ldata);
     close(fd);
     return 0;
 }

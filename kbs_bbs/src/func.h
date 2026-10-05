@@ -206,6 +206,7 @@ int newbmlog(const char *userid, const char *boardname, int type, int value);
     unsigned int get_mailbox_prop(char *userid);
     unsigned int update_mailbox_prop(char *userid, unsigned int prop);
     int gen_title(const char *boardname );
+    int gen_title_lastreply(const char *boardname );
     int read_user_memo( char *userid, struct usermemo ** ppum );
 #if HAVE_MYSQL_SMTH == 1
 #ifdef BMSLOG

@@ -562,6 +562,7 @@ static int read_prekey(struct _select_def *conf, int *command)
                 int ent;
                 case DIR_MODE_DIGEST:
                 case DIR_MODE_THREAD:
+                case DIR_MODE_THREAD_LASTREPLY:
                 case DIR_MODE_MARK:
                 case DIR_MODE_ORIGIN:
                 case DIR_MODE_AUTHOR:
@@ -683,7 +684,8 @@ int new_i_read(enum BBS_DIR_MODE cmdmode, char *direct, void (*dotitle) (struct 
     arg.bid=getbid(currboard->filename, NULL);
     arg.boardstatus=getbstatus(arg.bid);
     if ((arg.mode==DIR_MODE_NORMAL)||
-        ((arg.mode>=DIR_MODE_THREAD)&&(arg.mode<=DIR_MODE_WEB_THREAD))) {
+        ((arg.mode>=DIR_MODE_THREAD)&&(arg.mode<=DIR_MODE_WEB_THREAD))||
+        (arg.mode==DIR_MODE_THREAD_LASTREPLY)) {
         char ding_direct[PATHLEN];
         //设置置顶的.DIR direct TODO:用tmpfs
         sprintf(ding_direct,"boards/%s/%s",currboard->filename,DING_DIR);
@@ -1214,7 +1216,8 @@ int apply_thread(struct _select_def* conf, struct fileheader* fh,APPLY_THREAD_FU
                 
                 /* 判断是不是同一主题,不是直接continue*/
                 if ((read_arg->mode==DIR_MODE_NORMAL)||
-                     ((read_arg->mode>=DIR_MODE_THREAD)&&(read_arg->mode>=DIR_MODE_WEB_THREAD)))
+                     ((read_arg->mode>=DIR_MODE_THREAD)&&(read_arg->mode>=DIR_MODE_WEB_THREAD))||
+                     (read_arg->mode==DIR_MODE_THREAD_LASTREPLY))
                 { /*使用groupid*/
                     if (fh->groupid!=nowFh->groupid)
                     continue;

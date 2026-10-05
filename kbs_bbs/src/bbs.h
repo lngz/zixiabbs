@@ -265,6 +265,7 @@ extern long ti;
 #define BOARDS          ".BOARDS"           /* File containing list of boards */
 #define DOT_DIR         ".DIR"              /* Name of Directory file info */
 #define THREAD_DIR      ".THREAD"
+#define THREAD_LASTREPLY_DIR ".THREAD_LASTREPLY"
 #define DIGEST_DIR      ".DIGEST"           /* Name of Directory file info */
 #define DING_DIR        ".DINGDIR"	        /* 置顶文章.DIR , stiger */
 #define NAMEFILE        "BoardName"         /* File containing site name of bbs */
@@ -464,6 +465,7 @@ enum BBS_DIR_MODE {
     DIR_MODE_SUPERFITER = 9,        /* .Search.userid */
     DIR_MODE_WEB_THREAD = 10,       /* .WEBTHREAD */
     DIR_MODE_ZHIDING    = 11,       /* .DINGDIR */
+    DIR_MODE_THREAD_LASTREPLY = 12, /* .THREAD_LASTREPLY */
     DIR_MODE_MAIL ,                 /* 邮件模式 */
     DIR_MODE_FRIEND,                /* 好友名单 */
     DIR_MODE_TOP10,                 /* 十大模式 */

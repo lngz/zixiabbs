@@ -84,6 +84,7 @@ bool is_sorted_mode(int mode)
     case DIR_MODE_TITLE:
     case DIR_MODE_SUPERFITER:
     case DIR_MODE_WEB_THREAD:
+    case DIR_MODE_THREAD_LASTREPLY:
         return true;
     }
     return false;

@@ -1,3 +1,3 @@
 EXTRA_DIST = README INSTALL include/bbslib.h xml/*
-SUBDIRS = lib phplib
+SUBDIRS = lib
 CLEANFILES=@EXTRA_CLEAN@

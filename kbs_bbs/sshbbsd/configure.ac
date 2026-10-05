@@ -10,7 +10,8 @@
 #
 #
 
-AC_INIT(sshd.c)
+AC_INIT
+AC_CONFIG_SRCDIR([sshd.c])
 AM_INIT_AUTOMAKE(sshbbs, 1.0)
 
 AH_TOP([
@@ -22,7 +23,7 @@ AH_BOTTOM([
 ])
 AM_CONFIG_HEADER(kbs_ssh_config.h)
 
-AC_PREREQ(2.10)
+AC_PREREQ([2.72])
 
 # So many systems seem to need this that it is better do it here automatically.
 #LIBS="-L/usr/local/lib $LIBS"
@@ -43,7 +44,7 @@ else
 fi
 
 AC_PROG_CC
-AC_ISC_POSIX
+AC_SEARCH_LIBS([strerror],[cposix])
 
 if test "$GCC" = "yes"; then
   CFLAGS="$CFLAGS -Wall"
@@ -100,9 +101,7 @@ case "$host" in
     AC_DEFINE(HAVE_ETC_SHADOW, 1, [ ])
     no_shadows_password_checking=yes
     # We want support for <proj.h> eivind@ii.uib.no
-    AC_TRY_COMPILE([#include <proj.h>],
-		[int foo = MAXPROJNAMELEN; ],
-		AC_DEFINE(HAVE_SGI_PROJ_H, 1, [ ]) )
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <proj.h>]], [[int foo = MAXPROJNAMELEN; ]])],[AC_DEFINE(HAVE_SGI_PROJ_H, 1,  ) ],[])
     ;;
   *-ibm-aix3.2|*-ibm-aix3.2.0|*-ibm-aix3.2.1|*-ibm-aix3.2.2|*-ibm-aix3.2.3|*-ibm-aix3.2.4)
     os_aix=yes
@@ -133,10 +132,7 @@ case "$host" in
     # Ultrix shadow passwords implemented in auth-passwd.c.
     no_shadows_password_checking=yes
     AC_CHECK_LIB(auth, authenticate_user)
-    AC_TRY_COMPILE([#include <syslog.h>],
-		   [int foo = LOG_DAEMON; ],
-		   ,
-		   AC_DEFINE(NEED_SYS_SYSLOG_H, 1, [ ]) )
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <syslog.h>]], [[int foo = LOG_DAEMON; ]])],[],[AC_DEFINE(NEED_SYS_SYSLOG_H, 1,  ) ])
     ;;
   *-*-hpux7.*)
     # Kludge for ancient HPUX 7.x (from Nenad Babajic <saca@uis0.uis.kg.ac.yu>)
@@ -187,9 +183,9 @@ case "$host" in
     SSHDCONFOBJS="$SSHDCONFOBJS sshsia.o"
     OLD_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS -I."
-    AC_TRY_COMPILE([#include <sys/types.h>
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/types.h>
 #include <sys/security.h>
-#include <prot.h>], , , [
+#include <prot.h>]], [[]])],[],[
       AC_MSG_WARN([Could not include <prot.h> file.
 The digital unix 4.0 prot.h tries to include <acl.h> instead of <sys/acl.h>.
 Making a local copy of prot.h and patching it.])
@@ -341,21 +337,16 @@ export CFLAGS CC
 #AC_DEFINE(USE_PIPES, 1, [ ])
 
 dnl AC_MSG_CHECKING([that the compiler works])
-dnl AC_TRY_RUN([ main(int ac, char **av) { return 0; } ],
-dnl     AC_MSG_RESULT(yes),
-dnl     AC_MSG_RESULT(no)
-dnl     AC_MSG_ERROR(Could not compile and run even a trivial ANSI C program - check CC.),
-dnl     AC_MSG_ERROR(Could not compile and run even a trivial ANSI C program - check CC.))
+dnl AC_RUN_IFELSE([AC_LANG_SOURCE([[ main(int ac, char **av) { return 0; } ]])],[dnl     AC_MSG_RESULT(yes)],[dnl     AC_MSG_RESULT(no)
+dnl     AC_MSG_ERROR(Could not compile and run even a trivial ANSI C program - check CC.)],[dnl     AC_MSG_ERROR(Could not compile and run even a trivial ANSI C program - check CC.)])
 dnl 
 if test -z "$no_pipe"; then
 if test -n "$GCC"; then
   AC_MSG_CHECKING([if the compiler understands -pipe])
   OLDCC="$CC"
   CC="$CC -pipe"
-  AC_TRY_COMPILE(,,
-    AC_MSG_RESULT(yes),
-    CC="$OLDCC"
-    AC_MSG_RESULT(no))
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[AC_MSG_RESULT(yes)],[CC="$OLDCC"
+    AC_MSG_RESULT(no)])
 fi
 fi
 
@@ -367,12 +358,32 @@ AC_ARG_ENABLE(warnings,
     CFLAGS="$CFLAGS -Wall"
   fi],AC_MSG_RESULT(no))
 
-AC_TYPE_SIGNAL
+m4_warn([obsolete],
+[your code may safely assume C89 semantics that RETSIGTYPE is void.
+Remove this warning and the 'AC_CACHE_CHECK' when you adjust the code.])dnl
+AC_CACHE_CHECK([return type of signal handlers],[ac_cv_type_signal],[AC_COMPILE_IFELSE(
+[AC_LANG_PROGRAM([#include <sys/types.h>
+#include <signal.h>
+],
+		 [return *(signal (0, 0)) (0) == 1;])],
+		   [ac_cv_type_signal=int],
+		   [ac_cv_type_signal=void])])
+AC_DEFINE_UNQUOTED([RETSIGTYPE],[$ac_cv_type_signal],[Define as the return type of signal handlers
+		    ('int' or 'void').])
+
 AC_TYPE_SIZE_T
 AC_TYPE_UID_T
 AC_TYPE_OFF_T
 AC_TYPE_MODE_T
-AC_STRUCT_ST_BLKSIZE
+m4_warn([obsolete],
+[your code should no longer depend upon 'HAVE_ST_BLKSIZE', but
+'HAVE_STRUCT_STAT_ST_BLKSIZE'.  Remove this warning and
+the 'AC_DEFINE' when you adjust the code.])dnl
+AC_CHECK_MEMBERS([struct stat.st_blksize],[AC_DEFINE(HAVE_ST_BLKSIZE, 1,
+			    [Define to 1 if your 'struct stat' has
+			     'st_blksize'.  Deprecated, use
+			     'HAVE_STRUCT_STAT_ST_BLKSIZE' instead.])])
+
 
 AC_C_CONST
 AC_C_INLINE
@@ -392,14 +403,35 @@ if test -z "$no_utmpx"; then
     AC_MSG_RESULT(yes)], AC_MSG_RESULT(no))
 fi
 
-AC_HEADER_STDC
+m4_warn([obsolete],
+[The preprocessor macro 'STDC_HEADERS' is obsolete.
+  Except in unusual embedded environments, you can safely include all
+  C89 headers unconditionally.])dnl
+# Autoupdate added the next two lines to ensure that your configure
+# script's behavior did not change.  They are probably safe to remove.
+AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
+
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(unistd.h rusage.h sys/time.h lastlog.h utmp.h shadow.h)
 AC_CHECK_HEADERS(sgtty.h sys/select.h sys/ioctl.h machine/endian.h)
 AC_CHECK_HEADERS(paths.h usersec.h utime.h netinet/in_systm.h)
 AC_CHECK_HEADERS(netinet/in_system.h netinet/ip.h netinet/tcp.h ulimit.h)
 AC_CHECK_HEADERS(sys/resource.h login_cap.h sys/stream.h sys/conf.h)
-AC_HEADER_TIME
+m4_warn([obsolete],
+[Update your code to rely only on HAVE_SYS_TIME_H,
+then remove this warning and the obsolete code below it.
+All current systems provide time.h; it need not be checked for.
+Not all systems provide sys/time.h, but those that do, all allow
+you to include it and time.h simultaneously.])dnl
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+# Obsolete code to be removed.
+if test $ac_cv_header_sys_time_h = yes; then
+  AC_DEFINE([TIME_WITH_SYS_TIME],[1],[Define to 1 if you can safely include both <sys/time.h>
+	     and <time.h>.  This macro is obsolete.])
+fi
+# End of obsolete code.
+
 AC_HEADER_DIRENT
 AC_HEADER_STAT
 AC_HEADER_MAJOR
@@ -469,8 +501,8 @@ if test -z "$no_ranlib"; then
 else
   RANLIB=":"
 fi
-AC_PROG_LIBTOOL
-AC_PROGRAMS_CHECK(MAKEDEP, makedepend makedep, makedepend)
+LT_INIT
+AC_CHECK_PROGS([MAKEDEP],[makedepend makedep],[makedepend])
 
 AC_PATH_XTRA
 
@@ -893,7 +925,7 @@ AC_ARG_WITH(securid,
   yes)
     AC_MSG_RESULT(yes)
     if test '!' -f /usr/ace/sdiclient.a; then
-      AC_ERROR(SecurID sdiclient.a not found in /usr/ace: you must supply the path.)
+      AC_MSG_ERROR(SecurID sdiclient.a not found in /usr/ace: you must supply the path.)
     fi
     AC_MSG_RESULT(yes)
     AC_MSG_RESULT(Assuming SecurID headers and libraries are in /usr/ace.)
@@ -904,7 +936,7 @@ AC_ARG_WITH(securid,
   *)
     AC_MSG_RESULT(yes)
     if test '!' -f $withval/sdiclient.a; then
-      AC_ERROR(SecurID sdiclient.a not found in $withval: please supply the correct path.)
+      AC_MSG_ERROR(SecurID sdiclient.a not found in $withval: please supply the correct path.)
     fi
     AC_MSG_RESULT(Assuming SecurID headers and libraries are in $withval.)
     AC_DEFINE(HAVE_SECURID, 1, [ ])
@@ -925,7 +957,7 @@ AC_ARG_WITH(tis,
   *)
     AC_MSG_RESULT(yes)
     if test '!' -f $withval/libauth.a -a -f $withval/libfwall.a -a -f $withval/firewall.h; then
-      AC_ERROR(TIS libauth.a or libfwall.a or firewall.h not found in $withval: please supply the correct path.)
+      AC_MSG_ERROR(TIS libauth.a or libfwall.a or firewall.h not found in $withval: please supply the correct path.)
     fi
     AC_MSG_RESULT(Assuming TIS headers and libraries are in $withval.)
     AC_DEFINE(HAVE_TIS, 1, [ ])
@@ -1012,10 +1044,7 @@ AC_ARG_WITH(libwrap,
     fi
     OLDLIBS="$LIBS"
     LIBS="$WRAPLIBS $LIBS"
-    AC_TRY_LINK([ int allow_severity; int deny_severity; ],
-                [ hosts_access(); ],
-		[],
-		[ AC_MSG_ERROR(Could not find the $withval library.  You must first install tcp_wrappers.) ])
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[ int allow_severity; int deny_severity; ]], [[ hosts_access(); ]])],[],[ AC_MSG_ERROR(Could not find the $withval library.  You must first install tcp_wrappers.) ])
     LIBS="$OLDLIBS"
     ;;
   esac ],
@@ -1078,10 +1107,7 @@ if test "x$socks" = "x"; then
 	    # to LIBS.  This is harmless if there is no kerberos support.
 	    TMPLIBS="$LIBS"
 	    LIBS="$LIBS $KERBEROS_LIBS"
-	    AC_TRY_LINK([],
-	                [ SOCKSconnect(); ],
-			[],
-			[ AC_MSG_ERROR(Could not find the $withval library.  You must first install socks5.) ])
+	    AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[ SOCKSconnect(); ]])],[],[ AC_MSG_ERROR(Could not find the $withval library.  You must first install socks5.) ])
 	    LIBS="$TMPLIBS"
 	    ;;
 	  esac ],
@@ -1108,10 +1134,7 @@ if test "x$socks" = "x"; then
 	      fi
 	    fi
 	    LIBS="$withval $LIBS"
-	    AC_TRY_LINK([],
-	                [ Rconnect(); ],
-			[],
-			[ AC_MSG_ERROR(Could not find the $withval library.  You must first install socks.) ])
+	    AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[ Rconnect(); ]])],[],[ AC_MSG_ERROR(Could not find the $withval library.  You must first install socks.) ])
 	    ;;
 	  esac ],
 	  AC_MSG_RESULT(no)
@@ -1393,4 +1416,5 @@ AC_SUBST(SSHCONFOBJS)
 AC_SUBST(SSHDCONFOBJS)
 AC_SUBST(SSHINSTALLMODE)
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

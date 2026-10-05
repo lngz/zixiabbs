@@ -718,6 +718,9 @@ void readtitle(struct _select_def* conf)
         case DIR_MODE_THREAD:
             readmode="主题";
             break;
+        case DIR_MODE_THREAD_LASTREPLY:
+            readmode="主题(回复)";
+            break;
         case DIR_MODE_MARK:
             readmode="精华";
             break;
@@ -1896,13 +1899,24 @@ int title_mode(struct _select_def* conf,struct fileheader *fileinfo,void* extraa
         return FULLUPDATE;
     }
 
-    arg->newmode = DIR_MODE_THREAD;
-    if (setboardtitle(currboard->filename, -1)) {
-    	setbdir(arg->newmode, arg->direct, currboard->filename);
-        if (gen_title(currboard->filename) == -1) {
-            arg->mode=DIR_MODE_NORMAL;
-            setbdir(DIR_MODE_NORMAL, arg->direct, currboard->filename);
-            return FULLUPDATE;
+    if (arg->newmode == DIR_MODE_THREAD_LASTREPLY) {
+        if (setboardtitle(currboard->filename, -1)) {
+            setbdir(arg->newmode, arg->direct, currboard->filename);
+            if (gen_title_lastreply(currboard->filename) == -1) {
+                arg->mode=DIR_MODE_NORMAL;
+                setbdir(DIR_MODE_NORMAL, arg->direct, currboard->filename);
+                return FULLUPDATE;
+            }
+        }
+    } else {
+        arg->newmode = DIR_MODE_THREAD;
+        if (setboardtitle(currboard->filename, -1)) {
+            setbdir(arg->newmode, arg->direct, currboard->filename);
+            if (gen_title(currboard->filename) == -1) {
+                arg->mode=DIR_MODE_NORMAL;
+                setbdir(DIR_MODE_NORMAL, arg->direct, currboard->filename);
+                return FULLUPDATE;
+            }
         }
     }
     setbdir(arg->newmode, arg->direct, currboard->filename);
@@ -2081,7 +2095,7 @@ int change_mode(struct _select_def *conf,struct fileheader *fh,int mode){
 #ifdef NEWSMTH
             " 8)本版精华区搜索"
 #endif /* NEWSMTH */
-            " 9)自删文章 [1]: ",ans,2,DOECHO,NULL,true)==-1)
+            " 9)自删文章 T)同主题(按回复) [1]: ",ans,2,DOECHO,NULL,true)==-1)
 		    return FULLUPDATE;
         switch(ans[0]){
             case '0':
@@ -2143,6 +2157,10 @@ int change_mode(struct _select_def *conf,struct fileheader *fh,int mode){
             case '9':
                 mode=DIR_MODE_SELF;
                 break;
+            case 't':
+            case 'T':
+                mode=DIR_MODE_THREAD_LASTREPLY;
+                break;
             default:
                 mode=DIR_MODE_NORMAL;
                 break;
@@ -2155,6 +2173,7 @@ int change_mode(struct _select_def *conf,struct fileheader *fh,int mode){
         case DIR_MODE_DIGEST:
             return digest_mode(conf,fh,NULL);
         case DIR_MODE_THREAD:
+        case DIR_MODE_THREAD_LASTREPLY:
             return title_mode(conf,fh,NULL);
         case DIR_MODE_MARK:
             return marked_mode(conf,fh,NULL);
@@ -3537,6 +3556,7 @@ int del_post(struct _select_def* conf,struct fileheader *fileinfo,void* extraarg
     if (!(flag&ARG_BMFUNC_FLAG)&&arg->mode) {
         switch (arg->mode) {
         case DIR_MODE_THREAD:
+        case DIR_MODE_THREAD_LASTREPLY:
             ret=title_mode(conf,fileinfo,extraarg);
             break;
         case DIR_MODE_MARK:

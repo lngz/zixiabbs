@@ -54,8 +54,8 @@ static unsigned Txwindow;              /* Control the size of the transmitted wi
 static unsigned Txwspac;               /* Spacing between zcrcq requests */
 static unsigned Txwcnt;                /* Counter used to space ack requests */
 static size_t Lrxpos;                  /* Receiver's last reported offset */
-int errors;
-enum zm_type_enum protocol;
+extern int errors;
+extern enum zm_type_enum protocol;
 extern int turbo_escape;
 static int no_unixmode;
 
@@ -132,13 +132,13 @@ int Rxflags = 0;
 int Rxflags2 = 0;
 size_t bytcnt;
 int Wantfcs32 = TRUE;           /* want to send 32 bit FCS */
-char Lzconv;                    /* Local ZMODEM file conversion request */
-char Lzmanag;                   /* Local ZMODEM file management request */
+extern char Lzconv;                    /* Local ZMODEM file conversion request */
+extern char Lzmanag;                   /* Local ZMODEM file management request */
 int Lskipnocor;
-char Lztrans;
-char zconv;                     /* ZMODEM file conversion request */
-char zmanag;                    /* ZMODEM file management request */
-char ztrans;                    /* ZMODEM file transport request */
+extern char Lztrans;
+extern char zconv;                     /* ZMODEM file conversion request */
+extern char zmanag;                    /* ZMODEM file management request */
+extern char ztrans;                    /* ZMODEM file transport request */
 int Cmdtries = 11;
 int Cmdack1;                    /* Rx ACKs command, then do it */
 int Exitcode;
@@ -148,8 +148,8 @@ int Beenhereb4;                 /* How many times we've been ZRPOS'd same place 
 int no_timeout = FALSE;
 size_t max_blklen = 1024;
 size_t start_blklen = 0;
-int zmodem_requested;
-time_t stop_time = 0;
+extern int zmodem_requested;
+extern time_t stop_time;
 
 int error_count;
 
@@ -176,7 +176,7 @@ void bibi(int n)
 }
 
 
-int Zctlesc;                    /* Encode control characters */
+extern int Zctlesc;                    /* Encode control characters */
 int Zrwindow = 1400;            /* RX window size (controls garbage count) */
 
 extern jmp_buf zmodemjmp;
